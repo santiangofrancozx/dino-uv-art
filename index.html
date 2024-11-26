@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dino Chrome Temático</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+
+    canvas {
+      border: 1px solid #000;
+      background-color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let gameSpeed = 7;
+    let gravity = 0.6;
+    let isJumping = false;
+    let score = 0;
+    let theme = 'day';
+
+    const themes = {
+      day: { background: '#87CEEB', ground: '#228B22', obstacle: '#8B0000' },
+      night: { background: '#2C3E50', ground: '#34495E', obstacle: '#E74C3C' },
+    };
+
+    const playerImg = new Image();
+    playerImg.src = 'img/trex.png';
+
+    const player = {
+      x: 50,
+      y: 300,
+      width: 40,
+      height: 40,
+      dy: 0,
+      jumpHeight: -12,
+      draw() {
+        ctx.drawImage(playerImg, this.x, this.y, this.width, this.height);
+      },
+      update() {
+        this.y += this.dy;
+        this.dy += gravity;
+
+        if (this.y > 300) {
+          this.y = 300;
+          this.dy = 0;
+          isJumping = false;
+        }
+
+        this.draw();
+      },
+      jump() {
+        if (!isJumping) {
+          this.dy = this.jumpHeight;
+          isJumping = true;
+        }
+      },
+    };
+
+    class Obstacle {
+      constructor() {
+        this.x = canvas.width;
+        this.y = 320;
+        this.width = 30 + Math.random() * 50;
+        this.height = 20 + Math.random() * 20;
+        this.type = this.randomObstacleType();
+      }
+
+      randomObstacleType() {
+        const types = ['docker', 'git', 'error', 'ci', 'abortion', 'hope', 'justice'];
+        return types[Math.floor(Math.random() * types.length)];
+      }
+
+      draw() {
+        ctx.fillStyle = themes[theme].obstacle;
+        ctx.font = '30px Arial';
+        if (this.type === 'docker') {
+          ctx.fillText('🐳', this.x, this.y);
+        } else if (this.type === 'git') {
+          ctx.fillText('🔧', this.x, this.y);
+        } else if (this.type === 'error') {
+          ctx.fillText('❌', this.x, this.y);
+        } else if (this.type === 'ci') {
+          ctx.fillText('⚙️', this.x, this.y);
+        } else if (this.type === 'abortion') {
+          ctx.fillText('🚫', this.x, this.y);
+        } else if (this.type === 'hope') {
+          ctx.fillText('🌱', this.x, this.y);
+        } else if (this.type === 'justice') {
+          ctx.fillText('⚖️', this.x, this.y);
+        }
+      }
+
+      update() {
+        this.x -= gameSpeed;
+        this.draw();
+      }
+    }
+
+    const obstacles = [];
+    function spawnObstacle() {
+      const randomInterval = Math.random() * 2000 + 1000;
+      setTimeout(() => {
+        obstacles.push(new Obstacle());
+        spawnObstacle();
+      }, randomInterval);
+    }
+    spawnObstacle();
+
+    function detectCollision(player, obstacle) {
+      return (
+        player.x < obstacle.x + obstacle.width &&
+        player.x + player.width > obstacle.x &&
+        player.y < obstacle.y + obstacle.height &&
+        player.y + player.height > obstacle.y
+      );
+    }
+
+    function destroyPower(obstacle) {
+      const motivationalMessages = [
+        "¡Sigue adelante! ¡No te detengas!",
+        "¡Estás más cerca de lo que crees!",
+        "La perseverancia es la clave del éxito.",
+        "¡Nunca te rindas, cada esfuerzo cuenta!",
+        "¡Tu esfuerzo tiene un propósito!",
+      ];
+      alert(motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]);
+      obstacles.splice(obstacles.indexOf(obstacle), 1);
+    }
+
+    function changeTheme() {
+      if (score % 20 === 0 && score > 0) {
+        theme = theme === 'day' ? 'night' : 'day';
+      }
+    }
+
+    function increaseSpeed() {
+      gameSpeed = 10 + score / 50;
+    }
+
+    function gameLoop() {
+      if (score >= 100) {
+        // Mostrar mensaje de felicitación
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '30px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Si estás aquí es porque no te rendiste, ¡felicidades!', canvas.width / 2, canvas.height / 2);
+
+        // Detener el juego
+        return;
+      }
+
+      ctx.fillStyle = themes[theme].background;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = themes[theme].ground;
+      ctx.fillRect(0, 360, canvas.width, 40);
+
+      player.update();
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obstacle = obstacles[i];
+        obstacle.update();
+
+        if (obstacle.x + obstacle.width < 0) {
+          obstacles.splice(i, 1);
+          score++;
+          increaseSpeed();
+          changeTheme();
+        }
+
+        if (detectCollision(player, obstacle)) {
+          if (['docker', 'git', 'error', 'ci'].includes(obstacle.type)) {
+            alert(`¡Game Over! Puntuación: ${score}`);
+            document.location.reload();
+            return;
+          } else {
+            destroyPower(obstacle);
+          }
+        }
+      }
+
+      ctx.fillStyle = '#000';
+      ctx.font = '20px Arial';
+      ctx.fillText(`Puntuación: ${score}`, 10, 30);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        player.jump();
+      }
+    });
+
+    gameLoop();
+  </script>
+</body> 
+
+</html>
